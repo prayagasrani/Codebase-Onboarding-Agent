@@ -1,0 +1,36 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPO: ${GITHUB_REPO:-}
+      DATABASE_URL: postgresql+psycopg2://onboarding:onboarding@db:5432/onboarding
+      INDEX_DIR: /data/index
+    volumes:
+      - index_data:/data
+      - ${REPO_MOUNT:-./}:/repo:ro   # mount the repo to index at /repo
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: onboarding
+      POSTGRES_PASSWORD: onboarding
+      POSTGRES_DB: onboarding
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onboarding"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  index_data:
+  pg_data:
